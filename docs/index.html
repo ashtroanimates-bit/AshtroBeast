@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AshtroBeast – Text to Image</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #020617;
+      --bg-card: rgba(15, 23, 42, 0.95);
+      --accent: #38bdf8;
+      --accent-2: #a855f7;
+      --accent-soft: rgba(56, 189, 248, 0.18);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: rgba(148, 163, 184, 0.45);
+      --danger: #f97373;
+      --radius-lg: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  background: radial-gradient(circle at 50% 30%, #0d1a3a 0%, #050a1a 60%, #020617 100%);
+  color: var(--text);
+  padding: 16px;
+  overflow: hidden;
+}
+
+/* ⭐ Tiny Stars Layer 1 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1.5px 1.5px at 70% 80%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 40% 60%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 85% 25%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 15% 75%, rgba(255,255,255,0.5), transparent);
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: -2;
+}
+
+/* ⭐ Tiny Stars Layer 2 (slow twinkling) */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(1px 1px at 30% 20%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1.2px 1.2px at 60% 50%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1.1px 1.1px at 80% 70%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 25% 88%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1.2px 1.2px at 10% 40%, rgba(255,255,255,0.6), transparent);
+  animation: twinkle 9s infinite ease-in-out alternate;
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes twinkle {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+
+    .shell {
+      width: 100%;
+      max-width: 1150px;
+      margin: auto;
+      border-radius: 26px;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(148, 163, 184, 0.4), transparent);
+    }
+
+    .app {
+      backdrop-filter: blur(26px);
+      background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.98));
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      box-shadow:
+        0 18px 35px rgba(15, 23, 42, 0.8),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
+      padding: 16px 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      height: min(90vh, 720px);
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        height: auto;
+      }
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 14px;
+      background: radial-gradient(circle at 30% 20%, #e0f2fe, #38bdf8 35%, #6366f1 80%, #000);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9);
+      font-size: 18px;
+      font-weight: 800;
+      color: #020617;
+    }
+
+    .brand-text-main {
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: linear-gradient(120deg, #e5e7eb, #38bdf8, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .brand-sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .header-right {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-end;
+    }
+
+    .music-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(75, 85, 99, 0.9);
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.85);
+    }
+
+    #musicToggle {
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 0.78rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      transition: background 0.12s ease;
+    }
+
+    #musicToggle:hover {
+      background: rgba(30, 64, 175, 0.6);
+    }
+
+    .volume-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    #volumeSlider {
+      width: 80px;
+    }
+
+    .status-text {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: radial-gradient(circle, #22c55e 0, #16a34a 60%, transparent 100%);
+      box-shadow: 0 0 8px #22c55e;
+      margin-right: 4px;
+    }
+
+    .layout {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+      gap: 16px;
+      min-height: 0;
+      padding-top: 4px;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .panel {
+      background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 1));
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(55, 65, 81, 0.95);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .panel-title {
+      font-size: 0.94rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .panel-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: radial-gradient(circle, var(--accent) 0, transparent 70%);
+    }
+
+    .panel-subtitle {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    label {
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+      display: block;
+      color: #cbd5f5;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      resize: vertical;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid #4b5563;
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 1));
+      color: var(--text);
+      outline: none;
+      font-size: 0.94rem;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    textarea::placeholder {
+      color: #6b7280;
+    }
+
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.65);
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .chip {
+      padding: 4px 9px;
+      font-size: 0.75rem;
+      border-radius: 999px;
+      border: 1px solid rgba(75, 85, 99, 0.9);
+      background: rgba(15, 23, 42, 0.94);
+      color: #d1d5db;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+    }
+
+    .chip:hover {
+      background: rgba(15, 23, 42, 1);
+      border-color: rgba(148, 163, 184, 0.95);
+      transform: translateY(-1px);
+    }
+
+    .controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+
+    .select-group {
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    select {
+      background: rgba(15, 23, 42, 0.98);
+      color: var(--text);
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      outline: none;
+    }
+
+    select:focus {
+      border-color: var(--accent);
+    }
+
+    button.primary {
+      margin-top: 8px;
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      font-weight: 600;
+      font-size: 0.98rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 14px 30px rgba(37, 99, 235, 0.4);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
+    }
+
+    button.primary:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 40px rgba(59, 130, 246, 0.55);
+      filter: brightness(1.05);
+    }
+
+    button.primary:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .spinner {
+      border: 3px solid rgba(15, 23, 42, 0.9);
+      border-top: 3px solid white;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .progress-bar {
+      margin-top: 8px;
+      width: 100%;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(31, 41, 55, 0.95);
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 25%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      animation: progress 1.2s ease-in-out infinite;
+      transform-origin: left;
+    }
+
+    @keyframes progress {
+      0% { transform: translateX(-100%) scaleX(0.3); }
+      50% { transform: translateX(0%) scaleX(1); }
+      100% { transform: translateX(120%) scaleX(0.4); }
+    }
+
+    .error {
+      margin-top: 6px;
+      font-size: 0.78rem;
+      color: #fecaca;
+      background: rgba(127, 29, 29, 0.55);
+      border-radius: 10px;
+      padding: 6px 8px;
+      border: 1px solid rgba(248, 113, 113, 0.75);
+      display: none;
+    }
+
+    .hint {
+      margin-top: 4px;
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
+    .hint kbd {
+      padding: 2px 5px;
+      border-radius: 6px;
+      border: 1px solid #4b5563;
+      background: rgba(15, 23, 42, 0.95);
+      font-size: 0.7rem;
+    }
+
+    /* Preview panel */
+
+    .preview-main {
+      position: relative;
+      flex: 1;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #4b5563;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.12) 0, transparent 45%),
+        radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.16) 0, transparent 40%),
+        #020617;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 260px;
+    }
+
+    .preview-inner {
+      width: 100%;
+      height: 100%;
+      max-height: 430px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    #resultImage {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 10px;
+      object-fit: contain;
+      display: none;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+    }
+
+    .placeholder {
+      font-size: 0.88rem;
+      color: #9ca3af;
+      text-align: center;
+      padding: 12px;
+      max-width: 260px;
+      line-height: 1.4;
+    }
+
+    .preview-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+
+    .preview-footer-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button.secondary {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      background: rgba(15, 23, 42, 0.97);
+      color: #e5e7eb;
+      font-size: 0.78rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: rgba(15, 23, 42, 1);
+      border-color: rgba(148, 163, 184, 0.9);
+      transform: translateY(-1px);
+    }
+
+    button.secondary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    footer {
+      border-top: 1px solid rgba(31, 41, 55, 0.9);
+      padding-top: 4px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    footer code {
+      font-size: 0.75rem;
+    }
+
+    /* ⚽ GOAL + SUII overlay */
+
+    .goal-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease-out;
+      z-index: 999;
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.85), transparent 70%);
+    }
+
+    .goal-overlay.active {
+      opacity: 1;
+    }
+
+    .goal-text {
+      font-size: clamp(2.3rem, 6vw, 3.5rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      padding: 10px 22px;
+      border-radius: 999px;
+      border: 2px solid white;
+      background: radial-gradient(circle at top, #facc15, #ea580c);
+      box-shadow:
+        0 0 30px rgba(250, 204, 21, 0.8),
+        0 0 0 6px rgba(15, 23, 42, 0.9);
+      color: #111827;
+      transform: scale(0.3) translateY(40px);
+      opacity: 0;
+    }
+
+    .goal-text.show {
+      animation: goalPop 1s cubic-bezier(0.34, 1.56, 0.64, 1), glowPulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes goalPop {
+      0% {
+        transform: scale(0.2) translateY(40px);
+        opacity: 0;
+      }
+      40% {
+        transform: scale(1.08) translateY(0);
+        opacity: 1;
+      }
+      70% {
+        transform: scale(1);
+      }
+      100% {
+        transform: scale(0.9);
+        opacity: 0.97;
+      }
+    }
+
+    @keyframes glowPulse {
+      0%, 100% {
+        box-shadow:
+          0 0 24px rgba(250, 204, 21, 0.7),
+          0 0 0 6px rgba(15, 23, 42, 0.9);
+      }
+      50% {
+        box-shadow:
+          0 0 40px rgba(250, 204, 21, 1),
+          0 0 0 10px rgba(15, 23, 42, 0.9);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="app">
+      <header class="app-header">
+        <div class="brand-block">
+          <div class="brand-logo">AB</div>
+          <div>
+            <div class="brand-text-main">AshtroBeast</div>
+            <div class="brand-sub">Text-to-Image playground with GOALLL &amp; vibes 🎧</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="music-controls">
+            <button id="musicToggle">🔊 Music On</button>
+            <div class="volume-group">
+              <span id="volumeIcon">🔊</span>
+              <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" />
+            </div>
+          </div>
+          <div class="status-text">
+            <span class="status-dot"></span> Backend: /api/generate-image (Pollinations)
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <!-- LEFT: Prompt -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="panel-dot"></span>
+              Prompt
+            </div>
+            <div class="panel-subtitle">Describe the scene you want to turn into art</div>
+          </div>
+
+          <label for="prompt">Write your prompt</label>
+          <textarea
+            id="prompt"
+            placeholder="Example: Cristiano Ronaldo celebrating a last-minute bicycle kick goal in a packed stadium, ultra detailed, dramatic lighting"
+          ></textarea>
+
+          <div class="chip-row">
+            <div class="chip" data-prompt="A football stadium at night, crowd going wild, fireworks in the sky, ultra detailed, 4K">
+              ⚽ Stadium vibes
+            </div>
+            <div class="chip" data-prompt="Anime style football player doing a bicycle kick with energy effects, dramatic sky, motion blur, vibrant colors">
+              🌀 Anime kick
+            </div>
+            <div class="chip" data-prompt="Realistic close-up of football boots on green grass with stadium lights blurred in the background, 4K photo">
+              👟 Boot close-up
+            </div>
+            <div class="chip" data-prompt="Futuristic neon-lit city street at night with rain, reflections, cyberpunk style, ultra detailed, 4K">
+              🌃 Cyber street
+            </div>
+          </div>
+
+          <div class="controls-row">
+            <div class="select-group">
+              Aspect:
+              <select id="aspect">
+                <option value="square" selected>Square (1:1)</option>
+                <option value="portrait">Portrait (3:4)</option>
+                <option value="landscape">Landscape (16:9)</option>
+              </select>
+            </div>
+            <div class="select-group">
+              Quality:
+              <select id="quality">
+                <option value="fast">Fast</option>
+                <option value="balanced" selected>Balanced</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="generateBtn" class="primary">
+            <span id="btnText">Generate &amp; Shout GOAL!</span>
+            <div id="btnSpinner" class="spinner" style="display: none;"></div>
+          </button>
+
+          <div id="progressBar" class="progress-bar">
+            <div class="progress-bar-fill"></div>
+          </div>
+
+          <div id="error" class="error"></div>
+
+          <div class="hint">
+            Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to generate quickly.  
+            Be specific for better results – mention style, lighting, camera angle, etc.
+          </div>
+        </section>
+
+        <!-- RIGHT: Preview -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="panel-dot"></span>
+              Preview
+            </div>
+            <div class="panel-subtitle">Your generated image will appear here</div>
+          </div>
+
+          <div class="preview-main">
+            <div class="preview-inner">
+              <img id="resultImage" alt="Generated image" />
+              <div id="placeholder" class="placeholder">
+                Type a prompt on the left, hit
+                <strong>Generate &amp; Shout GOAL!</strong>, watch the football animation, and then enjoy your AI art.
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-footer">
+            <div id="lastPrompt" style="max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              Last prompt: —
+            </div>
+            <div class="preview-footer-right">
+              <button id="downloadBtn" class="secondary" disabled>⬇️ Download</button>
+              <button id="clearBtn" class="secondary">🧹 Clear</button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <span>AshtroBeast Text-to-Image • Background music &amp; GOALLL/SUIII for vibes ⚽</span>
+        <span>Backend: <code>/api/generate-image</code></span>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ⚽ GOAL + SUIII overlay -->
+  <div id="goalOverlay" class="goal-overlay">
+    <div id="goalText" class="goal-text"></div>
+  </div>
+
+  <!-- 🎵 Background music (loop) -->
+  <audio id="bgMusic" src="/music/bg.mp3" autoplay loop preload="auto"></audio>
+
+  <script>
+    const generateBtn = document.getElementById('generateBtn');
+    const btnText = document.getElementById('btnText');
+    const btnSpinner = document.getElementById('btnSpinner');
+    const promptInput = document.getElementById('prompt');
+    const resultImage = document.getElementById('resultImage');
+    const placeholder = document.getElementById('placeholder');
+    const errorDiv = document.getElementById('error');
+    const progressBar = document.getElementById('progressBar');
+    const chips = document.querySelectorAll('.chip');
+    const aspectSelect = document.getElementById('aspect');
+    const qualitySelect = document.getElementById('quality');
+    const lastPrompt = document.getElementById('lastPrompt');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    const goalOverlay = document.getElementById('goalOverlay');
+    const goalText = document.getElementById('goalText');
+
+    // 🎵 Background music + controls
+    const bgMusic = document.getElementById('bgMusic');
+    const musicToggle = document.getElementById('musicToggle');
+    const volumeSlider = document.getElementById('volumeSlider');
+    const volumeIcon = document.getElementById('volumeIcon');
+
+    let isMusicPlaying = true;
+    bgMusic.volume = 1.0;
+
+    musicToggle.addEventListener('click', () => {
+      if (isMusicPlaying) {
+        bgMusic.pause();
+        musicToggle.textContent = '🔈 Music Off';
+      } else {
+        bgMusic.play().catch(() => {});
+        musicToggle.textContent = '🔊 Music On';
+      }
+      isMusicPlaying = !isMusicPlaying;
+    });
+
+    volumeSlider.addEventListener('input', () => {
+      const vol = parseFloat(volumeSlider.value);
+      bgMusic.volume = vol;
+
+      if (vol === 0) {
+        volumeIcon.textContent = '🔇';
+      } else if (vol < 0.5) {
+        volumeIcon.textContent = '🔉';
+      } else {
+        volumeIcon.textContent = '🔊';
+      }
+    });
+
+    function setLoading(isLoading) {
+      generateBtn.disabled = isLoading;
+      if (isLoading) {
+        btnText.textContent = 'Generating...';
+        btnSpinner.style.display = 'block';
+        progressBar.style.display = 'block';
+      } else {
+        btnText.textContent = 'Generate & Shout GOAL!';
+        btnSpinner.style.display = 'none';
+        progressBar.style.display = 'none';
+      }
+    }
+
+    function setError(message) {
+      if (!message) {
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+      } else {
+        errorDiv.style.display = 'block';
+        errorDiv.textContent = message;
+      }
+    }
+
+    // ⚽ GOAL + SUIII animation
+    function playGoalAnimation() {
+      goalOverlay.classList.add('active');
+      goalText.classList.remove('show');
+      void goalText.offsetWidth; // reflow
+
+      goalText.textContent = 'GOALLLL!';
+      goalText.classList.add('show');
+
+      setTimeout(() => {
+        goalText.classList.remove('show');
+        void goalText.offsetWidth;
+        goalText.textContent = 'SUIII!';
+        goalText.classList.add('show');
+      }, 1100);
+
+      setTimeout(() => {
+        goalText.classList.remove('show');
+        goalOverlay.classList.remove('active');
+      }, 2300);
+    }
+
+    async function generateImage() {
+      const prompt = promptInput.value.trim();
+      setError('');
+
+      if (!prompt) {
+        setError('Please enter a prompt first.');
+        return;
+      }
+
+      playGoalAnimation();
+      setLoading(true);
+      downloadBtn.disabled = true;
+
+      const aspect = aspectSelect.value;
+      const quality = qualitySelect.value;
+
+      try {
+       // Build Pollinations URL directly (no backend)
+const { aspect, quality } = { aspect: aspectSelect.value, quality: qualitySelect.value };
+const sizeMap = {
+  square: { w: 1024, h: 1024 },
+  landscape: { w: 1024, h: 768 },
+  portrait: { w: 768,  h: 1024 }
+};
+const { w: width, h: height } = (() => {
+  const s = sizeMap[aspect] || sizeMap.square;
+  return { w: s.w, h: s.h };
+})();
+
+// enhance true for balanced/high, false otherwise
+const enhance = (quality === 'high' || quality === 'balanced') ? 'true' : 'false';
+const model = 'flux-realism'; // you can change later
+
+const encoded = encodeURIComponent(prompt);
+const pollUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&model=${encodeURIComponent(model)}&nologo=true&private=true&enhance=${enhance}`;
+
+// Directly set the image src to Pollinations URL
+resultImage.src = pollUrl;
+resultImage.style.display = 'block';
+placeholder.style.display = 'none';
+downloadBtn.disabled = false;
+lastPrompt.textContent = 'Last prompt: ' + prompt;
+
+      } catch (err) {
+        console.error(err);
+        setError(err.message || 'Something went wrong while generating the image.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    generateBtn.addEventListener('click', generateImage);
+
+    promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.ctrlKey) {
+        e.preventDefault();
+        generateImage();
+      }
+    });
+
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const text = chip.getAttribute('data-prompt');
+        promptInput.value = text;
+        promptInput.focus();
+      });
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (!resultImage.src) return;
+      const a = document.createElement('a');
+      a.href = resultImage.src;
+      a.download = 'ashtrobeast-image.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      promptInput.value = '';
+      resultImage.style.display = 'none';
+      placeholder.style.display = 'block';
+      downloadBtn.disabled = true;
+      lastPrompt.textContent = 'Last prompt: —';
+      setError('');
+    });
+  </script>
+</body>
+</html>
